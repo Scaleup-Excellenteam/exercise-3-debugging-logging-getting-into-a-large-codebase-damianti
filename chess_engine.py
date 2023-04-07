@@ -110,6 +110,20 @@ class game_state:
              black_rook_2]
         ]
 
+    def get_string_board(self):
+        board_str = "    a   b   c   d   e   f   g   h  \n"
+        for row in range(8):
+            board_str += f"{8 - row} "
+            for col in range(8):
+                if self.board[row][col] == Player.EMPTY:
+                    board_str += " -  "
+                else:
+                    player = "w" if self.board[row][col]._player == Player.PLAYER_1 else "b"
+                    board_str += f" {player}{self.board[row][col]._name} "
+            board_str += f"{8 - row}\n"
+        board_str += "    a   b   c   d   e   f   g   h  \n"
+        return board_str
+
     def get_piece(self, row, col):
         if (0 <= row < 8) and (0 <= col < 8):
             return self.board[row][col]
@@ -146,6 +160,7 @@ class game_state:
                 for move in initial_valid_piece_moves:
                     can_move = True
                     for piece in checking_pieces:
+
                         if moving_piece.get_name() is "k":
                             temp = self.board[current_row][current_col]
                             self.board[current_row][current_col] = Player.EMPTY
@@ -189,6 +204,7 @@ class game_state:
                             valid_moves.append(move)
                         self.board[current_row][current_col] = moving_piece
                         self.board[move[0]][move[1]] = temp
+                self._is_check = False
             else:
                 if moving_piece.get_name() is "k":
                     for move in initial_valid_piece_moves:
@@ -200,17 +216,20 @@ class game_state:
                             valid_moves.append(move)
                         self.board[current_row][current_col] = temp
                         self.board[move[0]][move[1]] = temp2
+
                 else:
                     for move in initial_valid_piece_moves:
                         valid_moves.append(move)
-            # if not valid_moves:
-            #     if self._is_check:
-            #         self.checkmate = True
-            #     else:
-            #         self.stalemate = True
-            # else:
-            #     self.checkmate = False
-            #     self.stalemate = False
+                self._is_check = False
+
+            if not valid_moves:
+                if self._is_check:
+                    self.checkmate = True
+                else:
+                    self.stalemate = True
+            else:
+                self.checkmate = False
+                self.stalemate = False
             return valid_moves
         else:
             return None
@@ -218,11 +237,20 @@ class game_state:
     # 0 if white lost, 1 if black lost, 2 if stalemate, 3 if not game over
     def checkmate_stalemate_checker(self):
         all_white_moves = self.get_all_legal_moves(Player.PLAYER_1)
-        all_black_moves = self.get_all_legal_moves(Player.PLAYER_2)
-        if self._is_check and self.whose_turn() and not all_white_moves:
+        if not (self.checkmate and self.whose_turn()):
+            all_black_moves = self.get_all_legal_moves(Player.PLAYER_2)
+
+
+        # if self._is_check and self.whose_turn() and not all_white_moves:
+        #     print("white lost")
+        #     return 0
+        # elif self._is_check and not self.whose_turn() and not all_black_moves:
+        #     print("black lost")
+        #     return 1
+        if self.checkmate and self.whose_turn() and not all_white_moves:
             print("white lost")
             return 0
-        elif self._is_check and not self.whose_turn() and not all_black_moves:
+        elif self.checkmate and not self.whose_turn() and not all_black_moves:
             print("black lost")
             return 1
         elif not all_white_moves and not all_black_moves:
@@ -328,6 +356,7 @@ class game_state:
 
             if ending_square in valid_moves:
                 moved_to_piece = self.get_piece(next_square_row, next_square_col)
+                is_eaten = False if moved_to_piece == Player.EMPTY else True
                 if moving_piece.get_name() is "k":
                     if moving_piece.is_player(Player.PLAYER_1):
                         if moved_to_piece == Player.EMPTY and next_square_col == 1 and self.king_can_castle_left(
@@ -465,6 +494,7 @@ class game_state:
                     self.board[current_square_row][current_square_col] = Player.EMPTY
 
                 self.white_turn = not self.white_turn
+                return moving_piece, is_eaten
 
             else:
                 pass
@@ -854,7 +884,7 @@ class game_state:
                     # self._is_check = True
                     _checks.append((king_location_row + row_change[i], king_location_col + col_change[i]))
         # print([_checks, _pins, _pins_check])
-        return [_pins_check, _pins, _pins_check]
+        return [_checks, _pins, _pins_check]
 
 
 class chess_move():
@@ -900,3 +930,4 @@ class chess_move():
 
     def get_moving_piece(self):
         return self.moving_piece
+
